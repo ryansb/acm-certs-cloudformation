@@ -8,6 +8,6 @@
     ACMCertificate:
       Type: "Custom::AcmCertificateRequest"
       Properties:
-        ServiceToken: 'arn:aws:lambda:us-east-1:368950843917:function:cloudformation-acm-resource'
+        ServiceToken: 'Your Lambda Function'
         Domains:
           Ref: Domains
