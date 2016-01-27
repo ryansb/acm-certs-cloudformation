@@ -2,10 +2,11 @@
 
 import boto3
 import hashlib
-import json
 import logging
+import time
+from botocore.exceptions import ClientError
 
-from cfn_wrapper import cfn_resource
+import cfn_resource
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -17,6 +18,7 @@ def check_properties(event):
         # don't validate on delete
         return
 
+def check_properties(event):
     properties = event['ResourceProperties']
     for p in ('Domains', ):
         if properties.get(p) is None:
@@ -42,35 +44,17 @@ def check_properties(event):
             'Data': {},
         }
 
-@cfn_resource
-def handler(event, context):
-    log.debug("Received event {}".format(json.dumps(event)))
+
+handler = cfn_resource.Resource()
+
+
+@handler.create
+def create_cert(event, context):
     props = event['ResourceProperties']
     prop_errors = check_properties(event)
     if prop_errors:
         return prop_errors
-
     domains = props['Domains']
-
-    if event['RequestType'] == 'Delete':
-        resp = {'Status': 'SUCCESS',
-                'PhysicalResourceId': event['PhysicalResourceId'],
-                'Data': {},
-                }
-        try:
-            acm.delete_certificate(CertificateArn=event['PhysicalResourceId'])
-        except:
-            log.exception('Failure deleting cert with arn %s' % event['PhysicalResourceId'])
-            resp['Reason'] = 'Some exception was raised while deleting the cert'
-        return resp
-
-    if event['RequestType'] == 'Update':
-        return {
-            'Status': 'SUCCESS',
-            'PhysicalResourceId': event['PhysicalResourceId'],
-            'Reason': 'Life is good, man',
-            'Data': {},
-        }
 
     # take a hash of the Stack & resource ID to make a request token
     id_token = hashlib.md5('cfn-{StackId}-{LogicalResourceId}'.format(
@@ -100,3 +84,52 @@ def handler(event, context):
         'PhysicalResourceId': response['CertificateArn'],
         'Data': {},
     }
+
+
+@handler.update
+def update_certificate(event, context):
+    props = event['ResourceProperties']
+    prop_errors = check_properties(event)
+    if prop_errors:
+        return prop_errors
+    domains = props['Domains']
+    arn = event['PhysicalResourceId']
+    if not arn.startswith('arn:aws:acm:'):
+        return create_cert(event, context)
+
+    try:
+        cert = acm.describe_certificate(CertificateArn=arn)
+    except ClientError:
+        # cert doesn't exist! make it
+        return create_cert(event, context)
+
+    if cert['Certificate']['Status'] == 'PENDING_VALIDATION' and props.get('Await', False):
+        # cert isn't yet valid, wait as long as we can until it is
+        await_validation(domains[0], context)
+
+    if sorted(domains) != sorted(cert['Certificate']['SubjectAlternativeNames']):
+        # domain names have changed, need to delete & rebuild
+        try:
+            acm.delete_certificate(CertificateArn=event['PhysicalResourceId'])
+        except:
+            log.exception('Failure deleting cert with arn %s' % event['PhysicalResourceId'])
+        return create_cert(event, context)
+
+    return {'Status': 'SUCCESS',
+            'Reason': 'Nothing to do, we think',
+            'Data': {}
+            }
+
+
+@handler.delete
+def delete_certificate(event, context):
+    resp = {'Status': 'SUCCESS',
+            'PhysicalResourceId': event['PhysicalResourceId'],
+            'Data': {},
+            }
+    try:
+        acm.delete_certificate(CertificateArn=event['PhysicalResourceId'])
+    except:
+        log.exception('Failure deleting cert with arn %s' % event['PhysicalResourceId'])
+        resp['Reason'] = 'Some exception was raised while deleting the cert'
+    return resp
