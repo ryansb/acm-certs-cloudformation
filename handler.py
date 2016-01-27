@@ -13,10 +13,20 @@ log.setLevel(logging.DEBUG)
 
 acm = boto3.client('acm')
 
-def check_properties(event):
-    if event['RequestType'] == 'Delete':
-        # don't validate on delete
-        return
+def await_validation(domain, context):
+    # as long as we have at least 10 seconds left
+    while context.get_remaining_time_in_millis() > 10000:
+        time.sleep(5)
+        resp = acm.list_certificates(CertificateStatuses=['ISSUED'])
+        if any(cert['DomainName'] == domain for cert in resp['CertificateSummaryList']):
+            cert_info = [cert for cert in resp['CertificateSummaryList']
+                         if cert['DomainName'] == domain][0]
+            log.info("Certificate has been issued for domain %s, ARN: %s" %
+                     (domain, cert_info['CertificateArn']))
+            return cert_info['CertificateArn']
+        log.info("Awaiting cert for domain %s" % domain)
+
+    log.warning("Timed out waiting for cert for domain %s" % domain)
 
 def check_properties(event):
     properties = event['ResourceProperties']
@@ -77,6 +87,8 @@ def create_cert(event, context):
         }
 
     response = acm.request_certificate(**kwargs)
+    if props.get('Await', False):
+        await_validation(domains[0], context)
 
     return {
         'Status': 'SUCCESS',
