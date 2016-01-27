@@ -8,6 +8,15 @@
     ACMCertificate:
       Type: "Custom::AcmCertificateRequest"
       Properties:
-        ServiceToken: 'Your Lambda Function'
+        ServiceToken: 'arn:aws:lambda:us-east-1:368950843917:function:cloudformation-acm-resource:PROD'
+        # Await is a boolean, whether or not to wait for the cert to be
+        # validated. Will wait up to 5 mins (max Lambda execution time)
+        Await: true
+        # optional: ValidationDomain
+        # ValidationDomain is the base domain where emails will be sent. If,
+        # for example, email isn't configured for test.mysite.com, you would
+        # specify "ValidationDomain: mysite.com"
+        # TODO AttachCloudFront is a CloudFront distribution ID to add the
+        # certificate to when it's issued. Implies Await=True
         Domains:
           Ref: Domains
