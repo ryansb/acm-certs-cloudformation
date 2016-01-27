@@ -15,11 +15,9 @@ create: template.json
 		--timeout-in-minutes 15 \
 		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "rsb.io,www.rsb.io"}]'
 
-
 update: template.json
 	aws cloudformation update-stack --stack-name AcmRequestStack \
 		--template-body file://template.json \
-		--timeout-in-minutes 30 \
 		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "rsb.io,www.rsb.io"}]'
 
 delete:
