@@ -23,8 +23,11 @@ update: template.json
 delete:
 	aws cloudformation delete-stack --stack-name AcmRequestStack
 
-function.zip: handler.py cfn_wrapper.py
+clean:
+	@rm -rf function.zip deps/* template.json
+
+function.zip: handler.py
 	pip install -t deps boto3
+	curl -s -o deps/cfn_resource.py https://raw.githubusercontent.com/ryansb/cfn-wrapper-python/master/cfn_resource.py
 	cp handler.py deps
-	cp cfn_wrapper.py deps
-	cd deps && zip -r ../function.zip *
+	cd deps && zip --quiet --recurse-paths ../function.zip *
