@@ -80,11 +80,15 @@ def create_cert(event, context):
         # wildcards are allowed
         kwargs['SubjectAlternativeNames'] = domains[1:]
 
-    if props.get('ValidationDomain'):
-        kwargs['DomainValidationOptions'] = {
-            'DomainName': domains[0],
-            'ValidationDomain': props['ValidationDomain'],
+    if props.get('ValidationOptions'):
+        # TODO validate format of this parameter
+        """ List of domain validation options. Looks like:
+        {
+            "DomainName": "test.foo.com",
+            "ValidationDomain": "foo.com",
         }
+        """
+        kwargs['DomainValidationOptions'] = props.get('ValidationOptions')
 
     response = acm.request_certificate(**kwargs)
     if props.get('Await', False):

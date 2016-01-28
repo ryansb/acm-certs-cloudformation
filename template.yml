@@ -12,10 +12,12 @@
         # Await is a boolean, whether or not to wait for the cert to be
         # validated. Will wait up to 5 mins (max Lambda execution time)
         Await: true
-        # optional: ValidationDomain
-        # ValidationDomain is the base domain where emails will be sent. If,
-        # for example, email isn't configured for test.mysite.com, you would
-        # specify "ValidationDomain: mysite.com"
+        # optional: ValidationOptions
+        # ValidationOptions is a list of maps from the domain name being
+        # registered to the preferred registration emails.
+        # ValidationOptions:
+        #   - DomainName: test.foo.com
+        #     ValidationDomain: foo.com
         # TODO AttachCloudFront is a CloudFront distribution ID to add the
         # certificate to when it's issued. Implies Await=True
         Domains:
