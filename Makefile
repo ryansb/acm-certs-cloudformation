@@ -28,7 +28,6 @@ clean:
 
 acm-function.zip: acm_handler.py
 	pip install -t deps boto3 cfn_resource
-	curl -s -o deps/cfn_resource.py https://raw.githubusercontent.com/ryansb/cfn-wrapper-python/master/cfn_resource.py
 	cp acm_handler.py deps/handler.py
 	cd deps && zip --quiet --recurse-paths ../acm-function.zip *
 
