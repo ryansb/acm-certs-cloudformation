@@ -1,41 +1,39 @@
 all:
-	@echo "Use 'make master.json' to generate the CloudFormation template without uploading"
-	@echo "Use 'make create' to deploy the CloudFormation stack"
-	@echo "Use 'make update' to re-deploy the CloudFormation stack"
+	@echo "Use 'make create_iam' and 'update_iam' to deploy the CloudFormation stack with execution roles"
+	@echo "Use 'make create' to deploy the CloudFormation demo stack with your domains"
 	@echo "Use 'make delete' to delete the CloudFormation stack"
 
-template.json: template.yml
-	@python ./minify.py < template.yml > template.json
-	@sed -i -e 's/ $$//' template.json
-	@echo "Generated master CFN template"
+create_iam:
+	aws cloudformation create-stack --stack-name AcmResourceRoles \
+		--template-body file://iam_role.json
 
-create: template.json
+update_iam:
+	aws cloudformation update-stack --stack-name AcmResourceRoles \
+		--template-body file://iam_role.json
+
+delete_iam:
+	aws cloudformation delete-stack --stack-name AcmResourceRoles \
+		--template-body file://iam_role.json
+
+create:
 	aws cloudformation create-stack --stack-name AcmRequestStack \
 		--template-body file://template.json \
 		--timeout-in-minutes 15 \
-		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "rsb.io,www.rsb.io"}]'
+		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "ryansb.com,www.ryansb.com"}]'
 
-update: template.json
-	aws cloudformation update-stack --stack-name AcmRequestStack \
+update:
+	aws cloudformation create-stack --stack-name AcmRequestStack \
 		--template-body file://template.json \
-		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "rsb.io,www.rsb.io"}]'
+		--timeout-in-minutes 15 \
+		--parameters '[{"ParameterKey": "Domains", "ParameterValue": "ryansb.com,www.ryansb.com"}]'
 
 delete:
 	aws cloudformation delete-stack --stack-name AcmRequestStack
 
 clean:
-	@rm -rf acm-function.zip assoc-function.zip deps/* template.json
+	@rm -rf acm-functions.zip deps/* template.json
 
-acm-function.zip: acm_handler.py
+acm-functions.zip: acm_handler.py cloudfront_associator.py
 	pip install -t deps boto3 cfn_resource
-	cp acm_handler.py deps/handler.py
-	cd deps && zip --quiet --recurse-paths ../acm-function.zip *
-
-assoc-function.zip: cloudfront_associator.py
-	pip install -t deps boto3 cfn_resource
-	cp cloudfront_associator.py deps/handler.py
-	cd deps && zip --quiet --recurse-paths ../assoc-function.zip *
-
-upload: acm-function.zip assoc-function.zip
-	aws s3 cp --acl public-read assoc-function.zip s3://demos.serverlesscode.com/acm-certificate-function.zip
-	aws s3 cp --acl public-read acm-function.zip s3://demos.serverlesscode.com/acm-associate-certificate-function.zip
+	cp *.py deps/
+	cd deps && zip --quiet --recurse-paths ../acm-functions.zip *
