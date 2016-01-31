@@ -1,0 +1,72 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Outputs": {
+        "AcmFunction": {
+            "Description": "Execution role for ACM/CFN functions",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ExecRole",
+                    "Arn"
+                ]
+            }
+        }
+    },
+    "Resources": {
+        "ExecRolePolicies": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "ExecRolePolicy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "acm:*",
+                                "cloudfront:List*",
+                                "cloudfront:Get*",
+                                "cloudfront:UpdateDistribution"
+                            ],
+                            "Resource": [
+                                "*"
+                            ],
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "logs:*"
+                            ],
+                            "Resource": "arn:aws:logs:*:*:*",
+                            "Effect": "Allow"
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "ExecRole"
+                    }
+                ]
+            }
+        },
+        "ExecRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
