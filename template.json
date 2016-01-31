@@ -1,0 +1,66 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Domains": {
+            "Type": "CommaDelimitedList",
+            "Description": "Comma-separated list of domain names"
+        }
+    },
+    "Resources": {
+        "DistributionCertificate": {
+            "Type": "Custom::AcmCertificateAssociation",
+            "Properties": {
+                "CertificateArn": {
+                    "Ref": "ACMCertificate"
+                },
+                "DistributionId": {
+                    "Ref": "SiteCDN"
+                },
+                "ServiceToken": "arn:aws:lambda:us-east-1:REDACTED:function:CfnAcmCloudFrontAssociator"
+            }
+        },
+        "ACMCertificate": {
+            "Type": "Custom::AcmCertificateRequest",
+            "Properties": {
+                "Domains": {
+                    "Ref": "Domains"
+                },
+                "Await": true,
+                "ServiceToken": "arn:aws:lambda:us-east-1:REDACTED:function:CfnAcmCertificate"
+            }
+        },
+        "SiteCDN": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Description": "CDN for site content",
+            "Properties": {
+                "DistributionConfig": {
+                    "DefaultCacheBehavior": {
+                        "ViewerProtocolPolicy": "allow-all",
+                        "ForwardedValues": {
+                            "QueryString": true
+                        },
+                        "TargetOriginId": "static-site-origin",
+                        "MinTTL": 300
+                    },
+                    "Origins": [
+                        {
+                            "DomainName": "rsb.io.s3-website-us-east-1.amazonaws.com",
+                            "Id": "static-site-origin",
+                            "CustomOriginConfig": {
+                                "OriginProtocolPolicy": "http-only",
+                                "HTTPPort": 80,
+                                "HTTPSPort": 443
+                            }
+                        }
+                    ],
+                    "PriceClass": "PriceClass_100",
+                    "DefaultRootObject": "index.html",
+                    "Enabled": true,
+                    "Aliases": {
+                        "Ref": "Domains"
+                    }
+                }
+            }
+        }
+    }
+}
