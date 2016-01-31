@@ -69,7 +69,7 @@ def generate_phys_id(cert_arn, dist_id):
     return "connection:%s:to:%s" % (cert_arn, dist_id)
 
 
-def associate_cert(cert_arn, dist_id, config):
+def associate_cert(cert_arn, dist_id, config, etag):
     config['ViewerCertificate'] = {
         'Certificate': cert_arn,
         'CertificateSource': 'acm',
@@ -78,7 +78,8 @@ def associate_cert(cert_arn, dist_id, config):
     }
     return cloudfront.update_distribution(
         Id=dist_id,
-        DistributionConfig=config
+        IfMatch=etag,
+        DistributionConfig=config,
     )
 
 handler = cfn_resource.Resource()
@@ -96,6 +97,7 @@ def create_cert_association(event, context):
 
     response = cloudfront.get_distribution_config(Id=dist_id)
     config = response['DistributionConfig']
+    etag = response['ETag']
 
     reason = ''
     if config.get('ViewerCertificate') is None:
@@ -109,10 +111,10 @@ def create_cert_association(event, context):
             log.debug('Already configured - nothing to do')
             reason = 'Already connected, easy!'
         else:
-            associate_cert(cert_arn, dist_id, config)
+            associate_cert(cert_arn, dist_id, config, etag)
             reason = 'Changed ACM cert ID'
     else:
-        associate_cert(cert_arn, dist_id, config)
+        associate_cert(cert_arn, dist_id, config, etag)
         reason = 'Associated ACM cert'
 
     return {
