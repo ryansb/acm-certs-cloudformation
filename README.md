@@ -1,5 +1,11 @@
 # Custom Resource to support AWS Certificate Manager
 
+*UPDATE*: This functionality is now provided directly in CloudFormation
+[here](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html)
+with the `AWS::CertificateManager::Certificate` resource. This is still
+a nice example of CloudFormation custom resources, but is no longer
+recommended for use. 
+
 This is a pair of resources to support adding the new [ACM][acm] SSL
 certificates automatically in CloudFormation. Right now, it creates a
 certificate request given a comma-separated list of domains. The second
