@@ -4,7 +4,7 @@ all:
 	@echo "Use 'make delete' to delete the CloudFormation stack"
 
 create_iam:
-	aws cloudformation create-stack --stack-name AcmResourceRoles \
+	aws cloudformation create-stack --capabilities CAPABILITY_IAM --stack-name AcmResourceRoles \
 		--template-body file://iam_role.json
 
 update_iam:
